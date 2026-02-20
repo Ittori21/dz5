@@ -18,3 +18,9 @@ docker exec -it dz5-db-1 psql -U user -d flask_db
 \dt
 
 \d "user"
+
+docker compose logs -f nginx
+
+docker compose logs -f db
+
+docker compose logs -f web
