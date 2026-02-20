@@ -9,3 +9,9 @@ curl -X DELETE http://localhost/users/1
 curl http://localhost/users
 
 curl http://localhost/users?check=real
+
+
+docker logs dz5-web-1
+docker exec -it dz5-db-1 psql -U user -d flask_db
+\dt
+\d "user"
