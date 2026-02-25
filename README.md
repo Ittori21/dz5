@@ -15,3 +15,5 @@ docker logs dz5-web-1
 docker exec -it dz5-db-1 psql -U user -d flask_db
 \dt
 \d "user"
+
+wrk -t12 -c400 -d180s http://localhost/users
