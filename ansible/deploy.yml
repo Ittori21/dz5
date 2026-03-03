@@ -1,34 +1,69 @@
 ---
-- name: Deploy K3s, Helm, ArgoCD and App
+- name: Full Automated Deploy K3s and ArgoCD
   hosts: k8s_node
   become: yes
   tasks:
-    - name: Install K3s (Lightweight Kubernetes)
-      shell: curl -sfL https://get.k3s.io | sh -
+    - name: Ensure K3s config directory exists
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Configure K3s to use IPv4 mirrors (Fix slow download)
+      copy:
+        dest: /etc/rancher/k3s/registries.yaml
+        content: |
+          mirrors:
+            docker.io:
+              endpoint:
+                - "https://mirror.gcr.io"
+                - "https://registry-1.docker.io"
+
+    - name: Install K3s (Force IPv4)
+      shell: curl -4 -sfL https://get.k3s.io | sh -
       args:
         creates: /usr/local/bin/k3s
 
-    - name: Wait for K3s to be ready
-      pause:
-        seconds: 15
-
-    - name: Install Helm
-      shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      args:
-        creates: /usr/local/bin/helm
+    - name: Wait for K3s node to be ready
+      command: /usr/local/bin/k3s kubectl get nodes
+      register: nodes
+      until: '" Ready " in nodes.stdout'
+      retries: 20
+      delay: 5
 
     - name: Create ArgoCD namespace
       shell: /usr/local/bin/k3s kubectl create namespace argocd --dry-run=client -o yaml | /usr/local/bin/k3s kubectl apply -f -
 
-    - name: Install ArgoCD via Helm
-      shell: |
-        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        /usr/local/bin/helm repo add argo https://argoproj.github.io/argo-helm
-        /usr/local/bin/helm repo update
-        /usr/local/bin/helm upgrade --install argocd argo/argo-cd --namespace argocd --set server.service.type=NodePort
+    - name: Install ArgoCD (Fast Manifests)
+      shell: /usr/local/bin/k3s kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
 
-    - name: Deploy Application via ArgoCD GitOps
+    - name: Patch ArgoCD Service to NodePort
       shell: |
-        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/Ittori21/dz5/main/k3s/argocd-apps.yaml
-      ignore_errors: yes
+        /usr/local/bin/k3s kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
+
+    - name: Wait for ArgoCD CRDs
+      pause:
+        seconds: 20
+
+    - name: Deploy Application (GitOps)
+      shell: /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/Ittori21/dz5/main/k3s/argocd-apps.yaml
+
+    - name: Wait for App Pods to be Running
+      shell: /usr/local/bin/k3s kubectl get pods -n default
+      register: app_pods
+      until: '"Running" in app_pods.stdout'
+      retries: 30
+      delay: 10
+
+    - name: Get ArgoCD Admin Password (Encoded)
+      shell: /usr/local/bin/k3s kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}"
+      register: argo_password_raw
+
+    - name: Show Access Info
+      debug:
+        msg: 
+          - "--- DEPLOYMENT FINISHED ---"
+          - "ArgoCD URL: https://{{ ansible_host }}:(find port in kubectl get svc)"
+          - "ArgoCD Login: admin"
+          - "ArgoCD Password: {{ argo_password_raw.stdout | b64decode }}"
+          - "App URL: http://{{ ansible_host }}:30080"

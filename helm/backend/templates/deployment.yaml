@@ -20,4 +20,4 @@ spec:
         - containerPort: 80
         env:
         - name: DATABASE_URL
-          value: "postgresql://user:password@postgres:5432/flask_db"
+          value: "postgresql://user:password@db:5432/flask_db"
