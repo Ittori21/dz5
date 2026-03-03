@@ -7,7 +7,4 @@ namespaces:
     format: "$remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\" $request_time"
     source:
       files:
-        - /mnt/nginx/access_prometheus.log
-    labels:
-      service: "my-service"
-    histogram_buckets: [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
+        - /mnt/nginx_logs/access_prometheus.log

@@ -34,12 +34,12 @@ services:
       - app-network
 
   nginx:
-    image: nginx:alpine
+    image: bitnami/nginx:latest
     restart: always
     ports:
-      - "80:80"
+      - "80:8080"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/my_vts.conf:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       - web
@@ -87,17 +87,16 @@ services:
     networks:
       - app-network
 
-  nginx-log-exporter:
-    image: quay.io/martinhelmich/prometheus-nginxlog-exporter
-    container_name: nginx-log-exporter
-    command: -config-file /etc/prometheus-nginxlog-exporter.yml
-    volumes:
-      - ./nginx-log-exporter.yml:/etc/prometheus-nginxlog-exporter.yml:ro
-      - nginx_logs:/mnt/nginx:ro
+  nginx-vts-exporter:
+    image: sophos/nginx-vts-exporter
+    environment:
+      - NGINX_STATUS=http://nginx:8080/status/format/json
     ports:
-      - "4040:4040"
+      - "9913:9913"
     networks:
       - app-network
+    depends_on:
+      - nginx
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter
