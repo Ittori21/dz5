@@ -18,7 +18,6 @@ spec:
         image: prometheuscommunity/postgres-exporter:latest
         env:
         - name: DATA_SOURCE_NAME
-          # Мы используем имя 'db', потому что твой сервис базы называется так
           value: "postgresql://user:password@db:5432/flask_db?sslmode=disable"
         ports:
         - containerPort: 9187
