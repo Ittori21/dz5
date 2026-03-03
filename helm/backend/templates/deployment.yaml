@@ -21,3 +21,5 @@ spec:
         env:
         - name: DATABASE_URL
           value: "postgresql://user:password@db:5432/flask_db"
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
