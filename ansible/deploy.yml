@@ -18,17 +18,17 @@
         creates: /usr/local/bin/helm
 
     - name: Create ArgoCD namespace
-      shell: k3s kubectl create namespace argocd --dry-run=client -o yaml | k3s kubectl apply -f -
+      shell: /usr/local/bin/k3s kubectl create namespace argocd --dry-run=client -o yaml | /usr/local/bin/k3s kubectl apply -f -
 
     - name: Install ArgoCD via Helm
       shell: |
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        helm repo add argo https://argoproj.github.io/argo-helm
-        helm repo update
-        helm upgrade --install argocd argo/argo-cd --namespace argocd --set server.service.type=NodePort
+        /usr/local/bin/helm repo add argo https://argoproj.github.io/argo-helm
+        /usr/local/bin/helm repo update
+        /usr/local/bin/helm upgrade --install argocd argo/argo-cd --namespace argocd --set server.service.type=NodePort
 
     - name: Deploy Application via ArgoCD GitOps
       shell: |
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-        k3s kubectl apply -f https://raw.githubusercontent.com/Ittori21/dz5/main/k3s/argocd-apps.yaml
+        /usr/local/bin/k3s kubectl apply -f https://raw.githubusercontent.com/Ittori21/dz5/main/k3s/argocd-apps.yaml
       ignore_errors: yes
